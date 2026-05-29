@@ -1,32 +1,29 @@
 {
   "name": "sidewalk",
-  "version": "1.0.0",
-  "description": "**Sidewalk** is an open-source, civic reporting and accountability platform that empowers citizens to document local issues, track government response, and ensure follow-through—publicly and transparently.",
+  "version": "0.1.0",
   "private": true,
-  "packageManager": "pnpm@9.0.0",
-  "main": "index.js",
-  "directories": {
-    "doc": "docs"
+  "description": "Open source hackathon starter for Sidewalk.",
+  "packageManager": "pnpm@10.0.0",
+  "engines": {
+    "node": ">=20.0.0"
   },
   "scripts": {
-    "bootstrap": "pnpm install",
-    "dev:api": "pnpm --filter sidewalk-api dev",
-    "dev:web": "pnpm --filter sidewalk-web dev",
-    "dev:mobile": "pnpm --filter mobile start",
-    "build": "pnpm -r --if-present build",
-    "lint": "pnpm -r --if-present lint",
-    "typecheck": "pnpm -r --if-present typecheck",
+    "dev:api": "pnpm --filter @sidewalk/api dev",
+    "dev:web": "pnpm --filter @sidewalk/web dev",
+    "dev:mobile": "pnpm --filter @sidewalk/mobile dev",
+    "dev:stellar": "pnpm --filter @sidewalk/stellar-service dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
     "check": "pnpm lint && pnpm typecheck && pnpm build"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Mixmatch/Sidewalk.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/Mixmatch/Sidewalk/issues"
-  },
-  "homepage": "https://github.com/Mixmatch/Sidewalk#readme"
+  "devDependencies": {
+    "@eslint/js": "^9.27.0",
+    "@types/node": "^22.15.30",
+    "eslint": "^9.27.0",
+    "globals": "^15.15.0",
+    "turbo": "^2.5.3",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.32.0"
+  }
 }

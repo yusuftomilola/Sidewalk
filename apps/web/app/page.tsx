@@ -1,55 +1,67 @@
-import Link from "next/link";
+import type { ReactElement } from "react";
 
-const surfaces = [
+const workspaces = [
   {
-    title: "API",
-    description: "Express backend with auth, reports, media, and worker-backed anchoring.",
+    name: "API",
+    path: "apps/api",
+    description: "Express authentication-first backend for the MVP."
   },
   {
-    title: "Web",
-    description: "New Next.js surface for diagnostics and future citizen and admin flows.",
+    name: "Web",
+    path: "apps/web",
+    description: "Next.js contributor surface for citizen and admin journeys."
   },
   {
-    title: "Mobile",
-    description: "Expo app for field reporting and citizen status tracking.",
+    name: "Mobile",
+    path: "apps/mobile",
+    description: "Expo workspace for mobile-first reporting and account flows."
   },
+  {
+    name: "Stellar Service",
+    path: "apps/stellar-service",
+    description: "Stellar network-facing service for receipts and wallet work."
+  }
 ];
 
-export default function HomePage() {
+const milestones = [
+  "Authentication",
+  "Identity",
+  "Reporting",
+  "Case tracking",
+  "Stellar verification"
+];
+
+export default function HomePage(): ReactElement {
   return (
     <main className="page-shell">
       <section className="hero">
-        <p className="eyebrow">Sidewalk Monorepo</p>
-        <h1>Build civic reporting across API, web, mobile, and Stellar services.</h1>
+        <p className="eyebrow">Open Source Hackathon Starter</p>
+        <h1>Sidewalk is being rebuilt from a clean foundation.</h1>
         <p className="lede">
-          This workspace now includes a standalone Next.js application so frontend,
-          backend, and mobile contributors can work in parallel without inventing local setup.
+          This starter keeps the monorepo baseline and removes the legacy implementation so contributors can ship the MVP in clear milestones.
         </p>
-        <div className="actions">
-          <Link className="button button-primary" href="/auth/request-otp">
-            Open auth flow
-          </Link>
-          <Link className="button button-primary" href="/health">
-            Open health page
-          </Link>
-          <a
-            className="button button-secondary"
-            href="https://github.com/MixMatch-Inc/Sidewalk"
-            target="_blank"
-            rel="noreferrer"
-          >
-            View repository
-          </a>
-        </div>
       </section>
 
-      <section className="surface-grid" aria-label="Workspace surfaces">
-        {surfaces.map((surface) => (
-          <article className="surface-card" key={surface.title}>
-            <h2>{surface.title}</h2>
-            <p>{surface.description}</p>
+      <section className="panel-grid">
+        {workspaces.map((workspace) => (
+          <article className="panel" key={workspace.path}>
+            <span className="panel-tag">{workspace.path}</span>
+            <h2>{workspace.name}</h2>
+            <p>{workspace.description}</p>
           </article>
         ))}
+      </section>
+
+      <section className="roadmap">
+        <div>
+          <p className="eyebrow">Build Order</p>
+          <h2>Authentication ships first.</h2>
+        </div>
+        <ol>
+          {milestones.map((milestone) => (
+            <li key={milestone}>{milestone}</li>
+          ))}
+        </ol>
       </section>
     </main>
   );

@@ -79,10 +79,3 @@ process.on("unhandledRejection", (reason) => {
     reason: reason instanceof Error ? reason.message : String(reason),
   });
 });
-
-process.on("uncaughtException", (error) => {
-  logger.error("Uncaught exception", { error: error.message });
-  process.exit(1);
-});
-
-startServer();

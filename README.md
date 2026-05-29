@@ -1,129 +1,75 @@
-# 🛣️ Sidewalk
+# Sidewalk
 
-[![CI](https://github.com/MixMatch-Inc/Sidewalk/actions/workflows/ci.yml/badge.svg)](https://github.com/MixMatch-Inc/Sidewalk/actions/workflows/ci.yml)
+Sidewalk is being rebuilt as a clean open source hackathon starter for civic reporting, identity, and trust workflows.
 
-Sidewalk is a civic reporting monorepo. It currently contains:
+This repository now starts from a fresh monorepo baseline built around:
 
-- `apps/api`: Express API for auth, reports, media uploads, health checks, and background jobs
-- `apps/web`: Next.js web app shell for diagnostics and future citizen/admin workflows
-- `apps/mobile`: Expo React Native app
-- `packages/stellar`: shared Stellar integration package
+- `apps/api`: Express API for authentication-first MVP development
+- `apps/web`: Next.js web app for contributor-facing product work
+- `apps/mobile`: Expo mobile workspace for mobile-first flows
+- `apps/stellar-service`: Stellar integration service for wallets, receipts, and network-facing tasks
+- `packages/config`: shared runtime and environment helpers
+- `packages/types`: shared TypeScript contracts
 
-The repository uses `pnpm` workspaces as the source of truth. Use `pnpm`, not `npm`, for install and workspace tasks.
+## Product rebuild order
 
-## Workspace layout
+We are restarting from scratch and building the MVP in this order:
 
-```text
-sidewalk/
-├── apps/
-│   ├── api/
-│   ├── mobile/
-│   └── web/
-├── packages/
-│   └── stellar/
-├── package.json
-├── pnpm-workspace.yaml
-└── tsconfig.base.json
-```
+1. Authentication
+2. Identity and user profile
+3. Reporting workflows
+4. Public case tracking
+5. Stellar-backed verification and receipts
+6. Notifications and trust signals
+7. Admin and moderation
+8. Mobile resilience and offline support
+9. Observability, security, and release readiness
 
-## Prerequisites
+## Getting started
 
-- Node.js 20 or later
-- pnpm 9
-- MongoDB for the API
-- Redis for BullMQ-backed workers
-- Stellar testnet account secret for anchoring flows
-- Expo Go or emulator tooling for mobile work
+Prerequisites:
 
-## Bootstrap
+- Node.js 20+
+- pnpm 10+
+
+Install dependencies:
 
 ```bash
 pnpm install
 ```
 
-Root workspace scripts:
-
-- `pnpm dev:api`
-- `pnpm dev:web`
-- `pnpm dev:mobile`
-- `pnpm build`
-- `pnpm lint`
-- `pnpm typecheck`
-- `pnpm check`
-
-## Environment setup
-
-Current runtime requirements come primarily from the API and workers:
-
-- `MONGO_URI`
-- `JWT_SECRET`
-- `STELLAR_SECRET_KEY`
-- `REDIS_URL` for queue-backed media processing and Stellar anchoring
-- S3 variables required by the media module
-- `RESEND_API_KEY` if OTP email delivery should send real emails
-
-If Redis or Resend are missing, some flows already degrade safely:
-
-- media queue falls back to storing originals without worker processing
-- Stellar anchor queue stays unavailable without crashing the API
-- OTP email delivery logs codes instead of sending them
-
-## Running the apps
-
-Backend API:
+Run the core workspaces:
 
 ```bash
 pnpm dev:api
-```
-
-Web app:
-
-```bash
 pnpm dev:web
-```
-
-Mobile app:
-
-```bash
 pnpm dev:mobile
+pnpm dev:stellar
 ```
 
-## Demo runbook
-
-Use [docs/phase-1-demo-runbook.md](./docs/phase-1-demo-runbook.md) for the current end-to-end demo path across API, web, and mobile.
-
-## Local quality checks
-
-Run the full workspace checks:
+Quality checks:
 
 ```bash
+pnpm lint
+pnpm typecheck
+pnpm build
 pnpm check
 ```
 
-Or run package-specific checks:
+## Environment
 
-```bash
-pnpm --filter sidewalk-api lint
-pnpm --filter sidewalk-api typecheck
-pnpm --filter sidewalk-api build
+Each runtime ships with a local `.env.example`:
 
-pnpm --filter sidewalk-web lint
-pnpm --filter sidewalk-web typecheck
-pnpm --filter sidewalk-web build
+- `apps/api/.env.example`
+- `apps/stellar-service/.env.example`
+- `apps/web/.env.example`
+- `apps/mobile/.env.example`
 
-pnpm --filter mobile lint
-pnpm --filter mobile typecheck
+The initial scaffold intentionally keeps secrets and third-party dependencies minimal so contributors can onboard quickly during hackathon work.
 
-pnpm --filter @sidewalk/stellar lint
-pnpm --filter @sidewalk/stellar typecheck
-pnpm --filter @sidewalk/stellar build
-```
+## Contributing
 
-## Notes for contributors
-
-- Each app/package should remain independently buildable from `main`
-- Shared logic belongs in `packages/*` only when it is stable enough for cross-app reuse
-- Prefer additive changes that do not assume other branches have been merged
+This repo is being prepared for public contributors. Keep changes scoped, document new environment variables, and prefer shared contracts in `packages/types` when multiple apps need the same shape.
 
 ## License
 

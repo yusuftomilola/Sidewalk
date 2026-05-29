@@ -1,15 +1,17 @@
+import type { ReactElement, ReactNode } from "react";
 import type { Metadata } from "next";
-import type { ReactNode } from "react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Sidewalk",
-  description: "Civic issue reporting and accountability platform",
+  title: "Sidewalk Starter",
+  description: "Hackathon starter for rebuilding Sidewalk from scratch."
 };
 
 export default function RootLayout({
-  children,
-}: Readonly<{ children: ReactNode }>) {
+  children
+}: Readonly<{
+  children: ReactNode;
+}>): ReactElement {
   return (
     <html lang="en">
       <body>{children}</body>
