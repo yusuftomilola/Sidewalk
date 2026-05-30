@@ -15,6 +15,103 @@ import type {
 const ACCESS_KEY = "sw_access";
 const REFRESH_KEY = "sw_refresh";
 
+export type AuthChallengeContext = {
+  flow: "login" | "signup";
+  email?: string;
+};
+
+export type AuthChallengeResult = {
+  token?: string;
+};
+
+export type AuthChallengeHandler = (
+  context: AuthChallengeContext
+) => Promise<AuthChallengeResult>;
+
+let authChallengeHandler: AuthChallengeHandler | null = null;
+
+/**
+ * Register a future anti-bot challenge handler (e.g. CAPTCHA, device check).
+ * Current behavior is unchanged until a handler is provided by the UI layer.
+ */
+export function setAuthChallengeHandler(
+  handler: AuthChallengeHandler | null
+): void {
+  authChallengeHandler = handler;
+}
+
+async function getChallengeToken(
+  context: AuthChallengeContext
+): Promise<string | undefined> {
+  if (!authChallengeHandler) return undefined;
+  const result = await authChallengeHandler(context);
+  return result.token;
+}
+
+function endpoint(path: string): string {
+  return `${process.env.NEXT_PUBLIC_API_URL}${path}`;
+}
+
+type AuthResult<T> =
+  | { ok: true; data: T }
+  | { ok: false; message: string };
+
+async function postAuth<TResponse, TBody>(
+  path: string,
+  body: TBody
+): Promise<AuthResult<TResponse>> {
+  try {
+    const res = await fetch(endpoint(path), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+      let message = "Request failed.";
+      try {
+        const data = (await res.json()) as { message?: string };
+        if (typeof data.message === "string") message = data.message;
+      } catch {
+        // Keep fallback message when response body is not parseable JSON.
+      }
+      return { ok: false, message };
+    }
+
+    const data = (await res.json()) as TResponse;
+    return { ok: true, data };
+  } catch {
+    return { ok: false, message: "Network error. Please try again." };
+  }
+}
+
+export async function register(
+  body: RegisterRequest
+): Promise<AuthResult<RegisterResponse>> {
+  const challengeToken = await getChallengeToken({
+    flow: "signup",
+    email: body.email,
+  });
+  return postAuth<RegisterResponse, RegisterRequest & { challengeToken?: string }>(
+    "/auth/register",
+    { ...body, challengeToken }
+  );
+}
+
+export async function login(
+  body: LoginRequest
+): Promise<AuthResult<LoginResponse>> {
+  const challengeToken = await getChallengeToken({
+    flow: "login",
+    email: body.email,
+  });
+  return postAuth<LoginResponse, LoginRequest & { challengeToken?: string }>(
+    "/auth/login",
+    { ...body, challengeToken }
+  );
+}
+
 export function saveTokens(tokens: SessionTokens): void {
   sessionStorage.setItem(ACCESS_KEY, tokens.accessToken);
   sessionStorage.setItem(REFRESH_KEY, tokens.refreshToken);
