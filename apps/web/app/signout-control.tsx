@@ -15,7 +15,7 @@ export default function SignOutControl(): ReactElement | null {
     setMessage("");
     const result = await logout();
     if (!result.ok) {
-      setMessage(result.message);
+      setMessage(result.error.message);
       setBusy(false);
       return;
     }

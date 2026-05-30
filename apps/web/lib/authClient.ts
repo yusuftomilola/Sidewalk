@@ -3,13 +3,17 @@
  * Stores tokens in sessionStorage and handles refresh + expiry.
  */
 
-import type { SessionTokens } from "@sidewalk/types";
 import type {
+  SessionTokens,
   AuthErrorResponse,
-  PasswordResetCompleteRequest,
-  PasswordResetCompleteResponse,
+  LoginRequest,
+  LoginResponse,
+  RegisterRequest,
+  RegisterResponse,
   PasswordResetRequestRequest,
   PasswordResetRequestResponse,
+  PasswordResetCompleteRequest,
+  PasswordResetCompleteResponse,
 } from "@sidewalk/types";
 
 const ACCESS_KEY = "sw_access";
@@ -52,104 +56,14 @@ function endpoint(path: string): string {
   return `${process.env.NEXT_PUBLIC_API_URL}${path}`;
 }
 
-type AuthResult<T> =
-  | { ok: true; data: T }
-  | { ok: false; message: string };
-
-async function postAuth<TResponse, TBody>(
-  path: string,
-  body: TBody
-): Promise<AuthResult<TResponse>> {
-  try {
-    const res = await fetch(endpoint(path), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify(body),
-    });
-
-    if (!res.ok) {
-      let message = "Request failed.";
-      try {
-        const data = (await res.json()) as { message?: string };
-        if (typeof data.message === "string") message = data.message;
-      } catch {
-        // Keep fallback message when response body is not parseable JSON.
-      }
-      return { ok: false, message };
-    }
-
-    const data = (await res.json()) as TResponse;
-    return { ok: true, data };
-  } catch {
-    return { ok: false, message: "Network error. Please try again." };
-  }
-}
-
-export async function register(
-  body: RegisterRequest
-): Promise<AuthResult<RegisterResponse>> {
-  const challengeToken = await getChallengeToken({
-    flow: "signup",
-    email: body.email,
-  });
-  return postAuth<RegisterResponse, RegisterRequest & { challengeToken?: string }>(
-    "/auth/register",
-    { ...body, challengeToken }
-  );
-}
-
-export async function login(
-  body: LoginRequest
-): Promise<AuthResult<LoginResponse>> {
-  const challengeToken = await getChallengeToken({
-    flow: "login",
-    email: body.email,
-  });
-  return postAuth<LoginResponse, LoginRequest & { challengeToken?: string }>(
-    "/auth/login",
-    { ...body, challengeToken }
-  );
-}
-
-export function saveTokens(tokens: SessionTokens): void {
-  sessionStorage.setItem(ACCESS_KEY, tokens.accessToken);
-  sessionStorage.setItem(REFRESH_KEY, tokens.refreshToken);
-}
-
-export function clearTokens(): void {
-  sessionStorage.removeItem(ACCESS_KEY);
-  sessionStorage.removeItem(REFRESH_KEY);
-}
-
-export function getAccessToken(): string | null {
-  return sessionStorage.getItem(ACCESS_KEY);
-}
-
-export function getRefreshToken(): string | null {
-  return sessionStorage.getItem(REFRESH_KEY);
-}
-
 const UNKNOWN_ERROR: AuthErrorResponse = {
   code: "VALIDATION_ERROR",
   message: "Something went wrong. Please try again.",
 };
 
-type AuthSuccess<T> = {
-  ok: true;
-  data: T;
-};
-
-type AuthFailure = {
-  ok: false;
-  error: AuthErrorResponse;
-};
-
+type AuthSuccess<T> = { ok: true; data: T };
+type AuthFailure = { ok: false; error: AuthErrorResponse };
 export type AuthResult<T> = AuthSuccess<T> | AuthFailure;
-
-function endpoint(path: string): string {
-  return `${process.env.NEXT_PUBLIC_API_URL}${path}`;
-}
 
 async function parseAuthError(res: Response): Promise<AuthErrorResponse> {
   try {
@@ -186,6 +100,44 @@ async function authRequest<TResponse, TBody>(
   }
 }
 
+export async function register(
+  body: RegisterRequest
+): Promise<AuthResult<RegisterResponse>> {
+  const challengeToken = await getChallengeToken({ flow: "signup", email: body.email });
+  return authRequest<RegisterResponse, RegisterRequest & { challengeToken?: string }>(
+    "/auth/register",
+    { ...body, challengeToken }
+  );
+}
+
+export async function login(
+  body: LoginRequest
+): Promise<AuthResult<LoginResponse>> {
+  const challengeToken = await getChallengeToken({ flow: "login", email: body.email });
+  return authRequest<LoginResponse, LoginRequest & { challengeToken?: string }>(
+    "/auth/login",
+    { ...body, challengeToken }
+  );
+}
+
+export function saveTokens(tokens: SessionTokens): void {
+  sessionStorage.setItem(ACCESS_KEY, tokens.accessToken);
+  sessionStorage.setItem(REFRESH_KEY, tokens.refreshToken);
+}
+
+export function clearTokens(): void {
+  sessionStorage.removeItem(ACCESS_KEY);
+  sessionStorage.removeItem(REFRESH_KEY);
+}
+
+export function getAccessToken(): string | null {
+  return sessionStorage.getItem(ACCESS_KEY);
+}
+
+export function getRefreshToken(): string | null {
+  return sessionStorage.getItem(REFRESH_KEY);
+}
+
 export function requestPasswordReset(
   body: PasswordResetRequestRequest
 ): Promise<AuthResult<PasswordResetRequestResponse>> {
@@ -213,22 +165,19 @@ export async function refreshSession(): Promise<boolean> {
   if (!refreshToken) return false;
 
   try {
-    const res = await fetch(
-      endpoint("/auth/refresh"),
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refreshToken }),
-        credentials: "include",
-      }
-    );
+    const res = await fetch(endpoint("/auth/refresh"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refreshToken }),
+      credentials: "include",
+    });
 
     if (!res.ok) {
       clearTokens();
       return false;
     }
 
-    const tokens: SessionTokens = await res.json();
+    const tokens = (await res.json()) as SessionTokens;
     saveTokens(tokens);
     return true;
   } catch {
@@ -251,36 +200,18 @@ export async function getAuthHeader(): Promise<Record<string, string> | null> {
   return token ? { Authorization: `Bearer ${token}` } : null;
 }
 
-export async function logout(): Promise<{ ok: true } | { ok: false; message: string }> {
-  try {
-    const authHeader = await getAuthHeader();
-    if (!authHeader) {
-      clearTokens();
-      return { ok: true };
-    }
-
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/logout`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...authHeader,
-      },
-    });
-
-    if (!res.ok) {
-      let message = "Unable to sign out right now.";
-      try {
-        const data = (await res.json()) as { message?: string };
-        if (typeof data.message === "string") message = data.message;
-      } catch {
-        // Keep fallback message.
-      }
-      return { ok: false, message };
-    }
-
+export async function logout(): Promise<AuthResult<{ ok: true }>> {
+  const authHeader = await getAuthHeader();
+  if (!authHeader) {
     clearTokens();
-    return { ok: true };
-  } catch {
-    return { ok: false, message: "Network error. Please try again." };
+    return { ok: true, data: { ok: true } };
   }
+
+  const result = await authRequest<{ ok: true }, Record<string, never>>(
+    "/auth/logout",
+    {}
+  );
+
+  clearTokens();
+  return result;
 }

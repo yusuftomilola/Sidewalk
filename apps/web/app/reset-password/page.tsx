@@ -39,7 +39,7 @@ export default function ResetPasswordPage(): ReactElement {
       ) {
         setState("invalid");
       } else {
-        setErrorMsg(result.error.message ?? authMessages.genericError);
+        setErrorMsg(result.error.message);
         setState("error");
       }
       return;

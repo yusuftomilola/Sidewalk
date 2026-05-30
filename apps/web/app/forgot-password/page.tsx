@@ -21,7 +21,7 @@ export default function ForgotPasswordPage(): ReactElement {
 
     const result = await requestPasswordReset(body);
     if (!result.ok) {
-      setErrorMsg(result.error.message ?? authMessages.genericError);
+      setErrorMsg(result.error.message);
       setState("error");
       return;
     }
