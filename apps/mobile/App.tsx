@@ -16,6 +16,7 @@ import type { AuthErrorCode, LoginResponse, SessionTokens } from "@sidewalk/type
 import {
   completePasswordReset,
   login,
+  logout as apiLogout,
   memoryTokenStore,
   requestPasswordReset,
 } from "./src/lib/authClient";
@@ -24,7 +25,8 @@ import {
   friendlyAuthMessage,
   privacySafeResetMessage,
 } from "./src/lib/authMessaging";
-import { isValidEmail, validatePassword } from "./src/lib/validation";
+import { isValidEmail, validatePassword, validatePasswordConfirm } from "./src/lib/validation";
+import { sessionStorage } from "./src/lib/secureStorage";
 
 type Route =
   | { name: "login" }
@@ -122,6 +124,21 @@ function mapAuthError(code: AuthErrorCode): string {
 export default function App() {
   const [route, setRoute] = useState<Route>({ name: "login" });
   const [authState, setAuthState] = useState<AuthState>({ status: "signedOut" });
+  const [bootstrapping, setBootstrapping] = useState(true);
+
+  // #374 – restore session from secure storage on launch
+  useEffect(() => {
+    sessionStorage.getTokens().then((stored) => {
+      // Stored tokens are opaque; we accept them as valid until the server rejects them.
+      // A future improvement would be to call /auth/refresh here and fall back on 401.
+      if (stored) {
+        memoryTokenStore.set(stored);
+        // We have tokens but no account details — stay on login so the user
+        // can re-authenticate. A refresh endpoint could populate the session.
+      }
+      setBootstrapping(false);
+    }).catch(() => setBootstrapping(false));
+  }, []);
 
   useEffect(() => {
     function handleUrl(nextUrl: string | null | undefined) {
@@ -135,14 +152,35 @@ export default function App() {
     return () => sub.remove();
   }, []);
 
+  if (bootstrapping) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <ActivityIndicator size="large" color="#7a3414" />
+      </SafeAreaView>
+    );
+  }
+
   const session = authState.status === "signedOut" ? null : authState.session;
   const headerEmail = session?.account.email;
+
+  // #375 – complete logout: server revocation + storage clear + nav reset
+  async function handleLogout() {
+    const tokens = memoryTokenStore.get();
+    if (tokens) {
+      await apiLogout(tokens.accessToken).catch(() => {});
+    }
+    memoryTokenStore.clear();
+    await sessionStorage.clearTokens().catch(() => {});
+    setAuthState({ status: "signedOut" });
+    setRoute({ name: "login" });
+  }
 
   if (route.name === "login") {
     return (
       <LoginScreen
-        onLoginSuccess={(sessionData, tokens) => {
+        onLoginSuccess={async (sessionData, tokens) => {
           memoryTokenStore.set(tokens);
+          await sessionStorage.setTokens(tokens).catch(() => {});
           if (sessionData.account.verified) {
             setAuthState({ status: "signedIn", session: sessionData });
             setRoute({ name: "home" });
@@ -180,9 +218,7 @@ export default function App() {
       <VerificationPendingScreen
         email={route.email ?? headerEmail}
         onBackToLogin={() => {
-          memoryTokenStore.clear();
-          setAuthState({ status: "signedOut" });
-          setRoute({ name: "login" });
+          handleLogout();
         }}
       />
     );
@@ -192,11 +228,7 @@ export default function App() {
     <HomeScreen
       email={headerEmail ?? "Signed in"}
       verified={session?.account.verified ?? false}
-      onLogout={() => {
-        memoryTokenStore.clear();
-        setAuthState({ status: "signedOut" });
-        setRoute({ name: "login" });
-      }}
+      onLogout={handleLogout}
     />
   );
 }
@@ -346,23 +378,20 @@ function PasswordResetCompleteScreen(props: {
   const [success, setSuccess] = useState<string | null>(null);
 
   const canSubmit = useMemo(() => {
-    const validation = validatePassword(password);
-    return (
-      token.trim().length > 0 &&
-      validation.ok &&
-      password === confirm &&
-      !busy
-    );
+    const pwdOk = validatePassword(password).ok;
+    const confirmOk = validatePasswordConfirm(password, confirm).ok;
+    return token.trim().length > 0 && pwdOk && confirmOk && !busy;
   }, [busy, confirm, password, token]);
 
   async function handleSubmit() {
-    const validation = validatePassword(password);
-    if (!validation.ok) {
-      setError(validation.message ?? "Please check your password.");
+    const pwdResult = validatePassword(password);
+    if (!pwdResult.ok) {
+      setError(pwdResult.message ?? "Please check your password.");
       return;
     }
-    if (password !== confirm) {
-      setError("Passwords do not match.");
+    const confirmResult = validatePasswordConfirm(password, confirm);
+    if (!confirmResult.ok) {
+      setError(confirmResult.message ?? "Passwords do not match.");
       return;
     }
 

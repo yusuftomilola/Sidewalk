@@ -7,11 +7,16 @@ import type {
   AuthErrorResponse,
   LoginRequest,
   LoginResponse,
+  LogoutResponse,
   PasswordResetCompleteRequest,
   PasswordResetCompleteResponse,
   PasswordResetRequestRequest,
   PasswordResetRequestResponse,
+  RegisterRequest,
+  RegisterResponse,
   SessionTokens,
+  VerifyEmailRequest,
+  VerifyEmailResponse,
 } from "@sidewalk/types";
 
 const UNKNOWN_ERROR: AuthErrorResponse = {
@@ -121,5 +126,40 @@ export function completePasswordReset(
     "/auth/password-reset/complete",
     body
   );
+}
+
+export function register(
+  body: RegisterRequest
+): Promise<AuthResult<RegisterResponse>> {
+  return authRequest<RegisterResponse, RegisterRequest>("/auth/register", body);
+}
+
+export function verifyEmail(
+  body: VerifyEmailRequest
+): Promise<AuthResult<VerifyEmailResponse>> {
+  return authRequest<VerifyEmailResponse, VerifyEmailRequest>(
+    "/auth/verify-email",
+    body
+  );
+}
+
+export async function logout(accessToken: string): Promise<AuthResult<LogoutResponse>> {
+  try {
+    const res = await fetch(endpoint("/auth/logout"), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({}),
+    });
+    if (!res.ok) {
+      return { ok: false, error: await parseAuthError(res) };
+    }
+    const data = (await res.json()) as LogoutResponse;
+    return { ok: true, data };
+  } catch {
+    return { ok: false, error: UNKNOWN_ERROR };
+  }
 }
 
