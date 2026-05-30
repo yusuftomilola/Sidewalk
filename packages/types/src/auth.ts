@@ -74,6 +74,27 @@ export type AuthErrorCode =
   | "TOKEN_EXPIRED"
   | "RATE_LIMITED";
 
+/**
+ * Runtime-usable error code constants (#389).
+ * Use these instead of raw strings so API handlers, UI mappers, and tests all
+ * reference the same values and typos are caught at compile time.
+ *
+ * @example
+ *   if (err.code === AUTH_ERROR_CODES.INVALID_CREDENTIALS) { ... }
+ *   res.json({ code: AUTH_ERROR_CODES.EMAIL_TAKEN, message: "..." })
+ */
+export const AUTH_ERROR_CODES = {
+  VALIDATION_ERROR: "VALIDATION_ERROR",
+  EMAIL_TAKEN: "EMAIL_TAKEN",
+  INVALID_CREDENTIALS: "INVALID_CREDENTIALS",
+  ACCOUNT_UNVERIFIED: "ACCOUNT_UNVERIFIED",
+  ACCOUNT_LOCKED: "ACCOUNT_LOCKED",
+  INVALID_TOKEN: "INVALID_TOKEN",
+  SESSION_NOT_FOUND: "SESSION_NOT_FOUND",
+  TOKEN_EXPIRED: "TOKEN_EXPIRED",
+  RATE_LIMITED: "RATE_LIMITED",
+} as const satisfies Record<AuthErrorCode, AuthErrorCode>;
+
 export type AuthErrorResponse = {
   code: AuthErrorCode;
   message: string;
