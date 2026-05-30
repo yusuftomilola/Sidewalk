@@ -74,7 +74,51 @@ export type AuthErrorCode =
   | "TOKEN_EXPIRED"
   | "RATE_LIMITED";
 
+/**
+ * Runtime-usable error code constants (#389).
+ * Use these instead of raw strings so API handlers, UI mappers, and tests all
+ * reference the same values and typos are caught at compile time.
+ *
+ * @example
+ *   if (err.code === AUTH_ERROR_CODES.INVALID_CREDENTIALS) { ... }
+ *   res.json({ code: AUTH_ERROR_CODES.EMAIL_TAKEN, message: "..." })
+ */
+export const AUTH_ERROR_CODES = {
+  VALIDATION_ERROR: "VALIDATION_ERROR",
+  EMAIL_TAKEN: "EMAIL_TAKEN",
+  INVALID_CREDENTIALS: "INVALID_CREDENTIALS",
+  ACCOUNT_UNVERIFIED: "ACCOUNT_UNVERIFIED",
+  ACCOUNT_LOCKED: "ACCOUNT_LOCKED",
+  INVALID_TOKEN: "INVALID_TOKEN",
+  SESSION_NOT_FOUND: "SESSION_NOT_FOUND",
+  TOKEN_EXPIRED: "TOKEN_EXPIRED",
+  RATE_LIMITED: "RATE_LIMITED",
+} as const satisfies Record<AuthErrorCode, AuthErrorCode>;
+
 export type AuthErrorResponse = {
   code: AuthErrorCode;
   message: string;
+};
+
+// ── Session payload (#390) ────────────────────────────────────────────────────
+
+/**
+ * The public account shape — safe to include in any client-facing payload.
+ * No password hashes, internal flags, or audit timestamps.
+ */
+export type AuthUser = {
+  id: string;
+  email: string;
+  verified: boolean;
+};
+
+/**
+ * Client-safe session payload: the account identity plus opaque tokens.
+ * All workspaces (web, mobile, internal services) should depend on this
+ * shape rather than ad-hoc inline types.
+ */
+export type AuthSessionPayload = SessionTokens & {
+  user: AuthUser;
+  /** ISO-8601 timestamp of when the session was created. */
+  issuedAt: string;
 };
