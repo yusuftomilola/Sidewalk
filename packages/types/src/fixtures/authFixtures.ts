@@ -25,12 +25,14 @@ export const FIXTURE_USER_UNVERIFIED: AuthUser = {
   id: "usr_unverified_001",
   email: "unverified@sidewalk.test",
   verified: false,
+  role: "citizen",
 };
 
 export const FIXTURE_USER_VERIFIED: AuthUser = {
   id: "usr_verified_001",
   email: "verified@sidewalk.test",
   verified: true,
+  role: "citizen",
 };
 
 // ── LoginResponse fixtures ────────────────────────────────────────────────────
@@ -50,13 +52,11 @@ export const FIXTURE_LOGIN_UNVERIFIED: LoginResponse = {
 export const FIXTURE_SESSION_VERIFIED: AuthSessionPayload = {
   ...FIXTURE_TOKENS,
   user: { ...FIXTURE_USER_VERIFIED },
-  issuedAt: "2026-01-01T00:00:00.000Z",
 };
 
 export const FIXTURE_SESSION_UNVERIFIED: AuthSessionPayload = {
   ...FIXTURE_TOKENS,
   user: { ...FIXTURE_USER_UNVERIFIED },
-  issuedAt: "2026-01-01T00:00:00.000Z",
 };
 
 // ── RegisterResponse fixture ──────────────────────────────────────────────────

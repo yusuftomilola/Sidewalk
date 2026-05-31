@@ -1,5 +1,24 @@
 # Auth Decision Record (MVP Starter)
 
+## Role model (first pass)
+
+The auth milestone establishes a minimal role baseline so later citizen, agency,
+and admin work can branch cleanly from it.
+
+**Decision:** All accounts created during the auth milestone receive the
+`citizen` role. The `AccountRole` union (`citizen | agency | admin`) is defined
+in `packages/types/src/auth.ts` and included in `AuthUser` and `LoginResponse`
+so the field is present from day one without pretending later permissions exist.
+
+Expansion points:
+- `agency` role: introduced in the Identity milestone when agency-specific
+  reporting routes are added.
+- `admin` role: introduced in the Admin and Moderation milestone.
+- Full RBAC (per-resource permissions): deferred until after Reporting milestone.
+
+Shared types and the `Account` model already carry the `role` field. No
+permission-gating logic is wired during the auth phase.
+
 ## Password policy
 
 - Minimum length: 8 characters (matches API validation).

@@ -29,6 +29,7 @@ describe("account model", () => {
     email: "test@example.com",
     passwordHash: "$2a$12$hash",
     verified: false,
+    role: "citizen",
     createdAt: new Date("2026-01-01"),
     updatedAt: new Date("2026-01-01")
   };

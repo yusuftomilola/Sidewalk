@@ -1,3 +1,17 @@
+// ── Role model ────────────────────────────────────────────────────────────────
+
+/**
+ * First-pass role model for the auth milestone.
+ *
+ * MVP starts with a single `citizen` role. `agency` and `admin` are reserved
+ * for later milestones (Identity, Reporting) and must not be assigned during
+ * the auth phase. Expand this union when the next milestone introduces
+ * permission-gated routes.
+ *
+ * See: apps/api/AUTH_DECISIONS.md for the full role model rationale.
+ */
+export type AccountRole = "citizen" | "agency" | "admin";
+
 // ── Registration ──────────────────────────────────────────────────────────────
 
 export type RegisterRequest = {
@@ -34,6 +48,7 @@ export type LoginResponse = SessionTokens & {
     id: string;
     email: string;
     verified: boolean;
+    role: AccountRole;
   };
 };
 
@@ -107,11 +122,16 @@ export type AuthErrorResponse = {
 /**
  * The public account shape shared across web, mobile, and API.
  * Contains only client-safe fields — no password hashes or internal flags.
+ *
+ * `role` defaults to `citizen` for all accounts created during the auth
+ * milestone. Agency and admin roles are reserved for later milestones.
  */
 export type AuthUser = {
   id: string;
   email: string;
   verified: boolean;
+  /** Account role. Always `citizen` during the auth milestone. */
+  role: AccountRole;
 };
 
 /**
@@ -120,8 +140,8 @@ export type AuthUser = {
  */
 export type AuthSessionPayload = SessionTokens & {
   user: AuthUser;
-  /** ISO 8601 timestamp of when the session was issued. */
-  issuedAt?: string;
+  /** ISO-8601 timestamp of when the session was issued. */
+  issuedAt: string;
 };
 
 /**
@@ -143,4 +163,33 @@ export type AuthState =
 export type AuthLandingContext = {
   user: AuthUser;
   isNewAccount: boolean;
+};
+
+// ── Internal service auth claims ──────────────────────────────────────────────
+
+/**
+ * The header name the API sets when forwarding auth context to internal
+ * services such as stellar-service. The value is a JSON-serialised
+ * InternalAuthClaims object.
+ *
+ * Internal services read this header and reject requests that omit it or
+ * carry an invalid shape.
+ */
+export const INTERNAL_CLAIMS_HEADER = "x-internal-auth-claims" as const;
+
+/**
+ * Minimal auth-claims shape the API sends to internal services (#416).
+ *
+ * Only the fields internal services actually need are included:
+ *   - `sub`      — stable account ID (never changes, safe to log)
+ *   - `verified` — whether the account has confirmed its email address
+ *
+ * Deliberately excludes email, tokens, and any PII not required for
+ * downstream trust decisions.
+ */
+export type InternalAuthClaims = {
+  /** Stable account identifier — matches Account.id in the API. */
+  sub: string;
+  /** True only when the account has completed email verification. */
+  verified: boolean;
 };

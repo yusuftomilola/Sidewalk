@@ -122,6 +122,7 @@ app.post("/auth/register", registerRateLimit, async (req, res) => {
     email,
     passwordHash: await hashPassword(password),
     verified: false,
+    role: "citizen",
     createdAt: now,
     updatedAt: now
   };
@@ -224,7 +225,7 @@ app.post("/auth/login", loginRateLimit, async (req, res) => {
   const body: LoginResponse = {
     accessToken: session.sessionId,
     refreshToken: session.refreshToken,
-    account: { id: account.id, email: account.email, verified: account.verified }
+    account: { id: account.id, email: account.email, verified: account.verified, role: account.role }
   };
   res.status(200).json(body);
 });
@@ -326,8 +327,7 @@ app.post("/auth/password-reset/complete", resetRateLimit, async (req, res) => {
 // Development-only shortcut for local auth fixture seeding.
 app.post("/auth/dev/seed-user", async (req, res) => {
   if (env.APP_ENV !== "development" || env.ENABLE_DEV_AUTH_SHORTCUTS !== "true") {
-    const err: AuthErrorResponse = { code: "NOT_FOUND", message: "Route not found." };
-    res.status(404).json(err);
+    res.status(404).json({ code: "NOT_FOUND", message: "Route not found." });
     return;
   }
 
@@ -345,6 +345,7 @@ app.post("/auth/dev/seed-user", async (req, res) => {
     email,
     passwordHash: await hashPassword(password),
     verified: true,
+    role: "citizen",
     createdAt: now,
     updatedAt: now
   };
@@ -405,8 +406,7 @@ app.get("/auth/metrics", (_req, res) => {
 
 app.get("/auth/sessions", (req, res) => {
   if (env.ENABLE_AUTH_SESSION_LIST !== "true") {
-    const err: AuthErrorResponse = { code: "NOT_FOUND", message: "Route not found." };
-    res.status(404).json(err);
+    res.status(404).json({ code: "NOT_FOUND", message: "Route not found." });
     return;
   }
   const token = bearerToken(req.headers.authorization);
