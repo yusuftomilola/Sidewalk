@@ -87,7 +87,8 @@ export type AuthErrorCode =
   | "INVALID_TOKEN"
   | "SESSION_NOT_FOUND"
   | "TOKEN_EXPIRED"
-  | "RATE_LIMITED";
+  | "RATE_LIMITED"
+  | "NOT_FOUND";
 
 /**
  * Runtime-usable error code constants (#389).
@@ -108,6 +109,7 @@ export const AUTH_ERROR_CODES = {
   SESSION_NOT_FOUND: "SESSION_NOT_FOUND",
   TOKEN_EXPIRED: "TOKEN_EXPIRED",
   RATE_LIMITED: "RATE_LIMITED",
+  NOT_FOUND: "NOT_FOUND",
 } as const satisfies Record<AuthErrorCode, AuthErrorCode>;
 
 export type AuthErrorResponse = {
@@ -138,6 +140,8 @@ export type AuthUser = {
  */
 export type AuthSessionPayload = SessionTokens & {
   user: AuthUser;
+  /** ISO-8601 timestamp of when the session was issued. */
+  issuedAt: string;
 };
 
 /**
@@ -159,4 +163,33 @@ export type AuthState =
 export type AuthLandingContext = {
   user: AuthUser;
   isNewAccount: boolean;
+};
+
+// ── Internal service auth claims ──────────────────────────────────────────────
+
+/**
+ * The header name the API sets when forwarding auth context to internal
+ * services such as stellar-service. The value is a JSON-serialised
+ * InternalAuthClaims object.
+ *
+ * Internal services read this header and reject requests that omit it or
+ * carry an invalid shape.
+ */
+export const INTERNAL_CLAIMS_HEADER = "x-internal-auth-claims" as const;
+
+/**
+ * Minimal auth-claims shape the API sends to internal services (#416).
+ *
+ * Only the fields internal services actually need are included:
+ *   - `sub`      — stable account ID (never changes, safe to log)
+ *   - `verified` — whether the account has confirmed its email address
+ *
+ * Deliberately excludes email, tokens, and any PII not required for
+ * downstream trust decisions.
+ */
+export type InternalAuthClaims = {
+  /** Stable account identifier — matches Account.id in the API. */
+  sub: string;
+  /** True only when the account has completed email verification. */
+  verified: boolean;
 };

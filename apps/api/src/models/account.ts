@@ -23,6 +23,6 @@ export type AccountPublic = Omit<Account, "passwordHash">;
 
 export function toPublic(account: Account): AccountPublic {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { passwordHash: _, ...pub } = account;
+  const { passwordHash: _pw, ...pub } = account;
   return pub;
 }
